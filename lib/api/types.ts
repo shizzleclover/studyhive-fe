@@ -91,3 +91,38 @@ export interface ChangePasswordRequest {
     currentPassword: string;
     newPassword: string;
 }
+
+// User Types
+export interface UpdateProfileRequest {
+    name?: string;
+    bio?: string;
+    profilePicture?: string;
+}
+
+export interface UserStats {
+    notesCreated: number;
+    notesSaved: number;
+    quizzesTaken: number;
+    reputationScore: number;
+    rank?: number;
+}
+
+export interface SavedNote {
+    _id: string;
+    noteId: string;
+    userId: string;
+    savedAt: string;
+}
+
+export interface UpdateRoleRequest {
+    role: 'student' | 'rep' | 'admin';
+}
+
+export interface AssignCoursesRequest {
+    courseIds: string[];
+}
+
+export interface UpdateReputationRequest {
+    score: number;
+    reason?: string;
+}

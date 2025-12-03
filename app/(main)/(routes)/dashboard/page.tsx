@@ -32,7 +32,7 @@ const DashboardPage = () => {
                     Welcome to StudyHive
                 </h2>
                 <p className="text-sm text-muted-foreground text-center max-w-md">
-                    We're having trouble loading your profile. Don't worry - your account is active!
+                    We&apos;re having trouble loading your profile. Don&apos;t worry - your account is active!
                 </p>
                 <div className="flex gap-3">
                     <Button onClick={() => window.location.reload()} variant="outline">

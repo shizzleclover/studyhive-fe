@@ -106,7 +106,7 @@ const LoginPage = () => {
         </form>
 
         <div className="text-center text-sm">
-          <span className="text-muted-foreground">Don't have an account? </span>
+          <span className="text-muted-foreground">Don&apos;t have an account? </span>
           <Link href="/signup" className="font-medium hover:underline transition-all duration-300 ease-in-out">
             Sign up
           </Link>
