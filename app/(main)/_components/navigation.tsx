@@ -80,7 +80,6 @@ export const Navigation = () => {
   const isResizingRef = useRef(false);
   const sidebarRef = useRef<ElementRef<"aside">>(null);
   const navbarRef = useRef<ElementRef<"div">>(null);
-  const [isResetting, setIsResetting] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
@@ -135,30 +134,24 @@ export const Navigation = () => {
   const resetWidth = () => {
     if (sidebarRef.current) {
       setIsCollapsed(false);
-      setIsResetting(true);
       sidebarRef.current.style.width = isMobile ? "100%" : "260px";
 
       if (navbarRef.current && !isMobile) {
         navbarRef.current.style.setProperty("width", "calc(100% - 260px)");
         navbarRef.current.style.setProperty("left", "260px");
       }
-
-      setTimeout(() => setIsResetting(false), 300);
     }
   };
 
   const collapse = () => {
     if (sidebarRef.current) {
       setIsCollapsed(true);
-      setIsResetting(true);
       sidebarRef.current.style.width = "0";
 
       if (navbarRef.current && !isMobile) {
         navbarRef.current.style.setProperty("width", "100%");
         navbarRef.current.style.setProperty("left", "0");
       }
-
-      setTimeout(() => setIsResetting(false), 300);
     }
   };
 
@@ -186,8 +179,7 @@ export const Navigation = () => {
       <aside
         ref={sidebarRef}
         className={cn(
-          "group/sidebar h-full bg-secondary overflow-y-auto relative flex w-[260px] flex-col z-[99999]",
-          isResetting && "transition-all ease-in-out duration-300",
+          "group/sidebar h-full bg-secondary overflow-y-auto relative flex w-[260px] flex-col z-[99999] transition-all ease-in-out duration-300",
           isMobile && "w-0"
         )}
       >
@@ -356,41 +348,15 @@ export const Navigation = () => {
         />
       </aside>
 
-      {/* Top Navbar - Hidden on document pages */}
-      {!pathname?.includes("/documents/") && (
-        <>
-          {/* Desktop navbar */}
-          {!isMobile && (
-            <div
-              ref={navbarRef}
-              className={cn(
-                "absolute top-0 z-[99999] left-[260px] w-[calc(100%-260px)]",
-                isResetting && "transition-all ease-in-out duration-300"
-              )}
-            >
-              <nav className="bg-background/80 backdrop-blur px-4 py-3 w-full flex items-center gap-4">
-                {isCollapsed && (
-                  <MenuIcon
-                    onClick={resetWidth}
-                    role="button"
-                    className="h-6 w-6 text-muted-foreground cursor-pointer hover:text-foreground transition"
-                  />
-                )}
-              </nav>
-            </div>
-          )}
-
-          {/* Mobile: only floating hamburger, no navbar bar */}
-          {isMobile && isCollapsed && (
-            <button
-              type="button"
-              onClick={resetWidth}
-              className="fixed top-3 left-3 z-[99999] rounded-md border bg-background/90 px-2 py-1 shadow-sm text-muted-foreground hover:text-foreground"
-            >
-              <MenuIcon className="h-5 w-5" />
-            </button>
-          )}
-        </>
+      {/* Floating hamburger only, no header bar */}
+      {!pathname?.includes("/documents/") && isCollapsed && (
+        <button
+          type="button"
+          onClick={resetWidth}
+          className="fixed top-3 left-3 z-[99999] p-2 text-muted-foreground hover:text-foreground"
+        >
+          <MenuIcon className="h-5 w-5" />
+        </button>
       )}
     </>
   );

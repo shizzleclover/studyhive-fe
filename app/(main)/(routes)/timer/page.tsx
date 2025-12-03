@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Play, Pause, RotateCcw, Clock, Timer, Coffee, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+
+const Orb = dynamic(() => import("@/components/orb"), { ssr: false });
 
 type TimerMode = "pomodoro" | "short-break" | "long-break" | "stopwatch";
 
@@ -312,46 +315,28 @@ const TimerPage = () => {
 
         {/* Timer Display */}
         <div className="flex flex-col items-center justify-center min-h-[400px]">
-          {/* Progress Circle */}
+          {/* Orb Timer */}
           {mode !== "stopwatch" && (
-            <div className={cn(
-              "relative w-64 h-64 mb-8 transition-transform duration-300",
-              isPulsing && "scale-110"
-            )}>
-              <svg className="transform -rotate-90 w-full h-full">
-                <circle
-                  cx="128"
-                  cy="128"
-                  r="120"
-                  stroke="currentColor"
-                  strokeWidth="8"
-                  fill="none"
-                  className="text-muted/30"
-                />
-                <circle
-                  cx="128"
-                  cy="128"
-                  r="120"
-                  stroke="currentColor"
-                  strokeWidth="8"
-                  fill="none"
-                  strokeDasharray={`${2 * Math.PI * 120}`}
-                  strokeDashoffset={`${2 * Math.PI * 120 * (1 - getProgress() / 100)}`}
-                  className={cn(
-                    "transition-all duration-1000 ease-linear",
-                    mode === "pomodoro" && "text-amber-500",
-                    mode === "short-break" && "text-green-500",
-                    mode === "long-break" && "text-blue-500"
-                  )}
-                  strokeLinecap="round"
-                />
-              </svg>
+            <div
+              className={cn(
+                "relative w-64 h-64 mb-8 transition-transform duration-300",
+                isPulsing && "scale-110"
+              )}
+            >
+              <Orb
+                hoverIntensity={0.5}
+                rotateOnHover
+                forceHoverState={false}
+                hue={mode === "pomodoro" ? 0 : mode === "short-break" ? 140 : 220}
+              />
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
-                  <div className={cn(
-                    "text-5xl font-bold mb-2 transition-all",
-                    timeLeft < 60 && mode !== "stopwatch" && "text-red-500 animate-pulse"
-                  )}>
+                  <div
+                    className={cn(
+                      "text-5xl font-bold mb-2 transition-all",
+                      timeLeft < 60 && "text-red-500 animate-pulse"
+                    )}
+                  >
                     {formatTime(timeLeft)}
                   </div>
                   <div className="text-sm text-muted-foreground flex items-center justify-center gap-2">
