@@ -1,66 +1,105 @@
 "use client";
 
-import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SignOutButton, useUser } from "@clerk/clerk-react";
-import { ChevronsLeftRight } from "lucide-react";
+import { studyHiveApi } from "@/lib/studyhive-data";
+import { useAuth } from "@/hooks/use-auth";
+import { useRouter } from "next/navigation";
+import { ChevronsUpDown, LogOut, User, Trophy } from "lucide-react";
+import { IconRenderer } from "@/components/icon-renderer";
 
 export const UserItem = () => {
-  const { user } = useUser();
+  const router = useRouter();
+  const { logout } = useAuth();
+  const user = studyHiveApi.auth.getCurrentUser();
+
+  const handleLogout = () => {
+    logout();
+    router.push("/");
+  };
+
+  const getRoleBadge = (role: string) => {
+    switch (role) {
+      case "admin":
+        return { label: "Admin", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300" };
+      case "rep":
+        return { label: "Rep", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" };
+      default:
+        return { label: "Student", color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300" };
+    }
+  };
+
+  const roleBadge = getRoleBadge(user.role);
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <div
           role="button"
-          className="flex items-center text-sm p-3 w-full hover:bg-primary/5"
+          className="flex items-center text-sm p-2 w-full hover:bg-primary/5 rounded-md transition-colors"
         >
-          <div className="gap-x-2 flex items-center max-w-[150px]">
-            <Avatar className="h-5 w-5">
-              <AvatarImage src={user?.imageUrl} />
-            </Avatar>
-            <span className="text-start font-medium line-clamp-1">
-              {user?.fullName}&apos;s Notion
-            </span>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30">
+              <IconRenderer iconName={user.avatar || "User"} className="h-4 w-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{user.name}</p>
+              <div className="flex items-center gap-1">
+                <span className={`text-[10px] px-1.5 py-0.5 rounded ${roleBadge.color}`}>
+                  {roleBadge.label}
+                </span>
+              </div>
+            </div>
           </div>
-          <ChevronsLeftRight className="rotate-90 ml-2 text-muted-foreground h-4 w-4" />
+          <ChevronsUpDown className="h-4 w-4 text-muted-foreground shrink-0" />
         </div>
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        className="w-80"
+        className="w-72"
         align="start"
         alignOffset={11}
         forceMount
       >
-        <div className="flex flex-col space-y-4 p-2">
-          <p className="text-xs font-medium leading-none text-muted-foreground">
-            {user?.emailAddresses[0].emailAddress}
-          </p>
-          <div className="flex items-center gap-x-2">
-            <div className="rounded-md bg-secondary p-1">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={user?.imageUrl} />
-              </Avatar>
+        <div className="p-3">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30">
+              <IconRenderer iconName={user.avatar || "User"} className="h-6 w-6" />
             </div>
-            <div className="space-y-1">
-              <p className="text-sm line-clamp-1">
-                {user?.fullName}&apos;s Notion
-              </p>
+            <div>
+              <p className="font-medium">{user.name}</p>
+              <p className="text-xs text-muted-foreground">{user.email}</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-4 mt-4 p-2 bg-muted rounded-lg">
+            <div className="flex items-center gap-1">
+              <Trophy className="h-4 w-4 text-amber-500" />
+              <span className="text-sm font-medium">{user.reputationScore}</span>
+              <span className="text-xs text-muted-foreground">rep</span>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {user.savedNotes.length} saved notes
             </div>
           </div>
         </div>
+        
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          asChild
-          className="w-full cursor-pointer text-muted-foreground"
-        >
-          <SignOutButton>Log Out</SignOutButton>
+        
+        <DropdownMenuItem className="gap-2 cursor-pointer">
+          <User className="h-4 w-4" />
+          View Profile
+        </DropdownMenuItem>
+        
+        <DropdownMenuSeparator />
+        
+        <DropdownMenuItem className="gap-2 cursor-pointer text-muted-foreground" onClick={handleLogout}>
+          <LogOut className="h-4 w-4" />
+          Log Out
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

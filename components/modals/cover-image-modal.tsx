@@ -2,38 +2,35 @@
 
 import { SingleImageDropzone } from "@/components/single-image-dropzone";
 import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
-import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
+import { studyHiveApi } from "@/lib/studyhive-data";
 import { useCoverImage } from "@/hooks/use-cover-image";
-import { useEdgeStore } from "@/lib/edgestore";
-import { useMutation } from "convex/react";
 import { useParams } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 
 export const CoverImageModal = () => {
   const params = useParams();
-  const update = useMutation(api.documents.update);
   const [file, setFile] = useState<File>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const coverImage = useCoverImage();
-  const { edgestore } = useEdgeStore();
 
   const onChange = async (file?: File) => {
     if (file) {
       setIsSubmitting(true);
       setFile(file);
 
-      const res = await edgestore.publicFiles.upload({
-        file,
-        options: { replaceTargetUrl: coverImage.url },
-      });
-
-      await update({
-        id: params.documentId as Id<"documents">,
-        coverImage: res.url,
-      });
-
-      onClose();
+      // Mock file upload - convert to data URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const imageUrl = reader.result as string;
+        studyHiveApi.notes.update(params.documentId as string, {
+          coverImage: imageUrl,
+        });
+        toast.success("Cover image uploaded!");
+        setIsSubmitting(false);
+        onClose();
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -59,3 +56,4 @@ export const CoverImageModal = () => {
     </Dialog>
   );
 };
+

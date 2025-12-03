@@ -1,75 +1,226 @@
-# notion-clone-nextjs
+# StudyHive 🐝
 
-![GitHub repo size](https://img.shields.io/github/repo-size/evanch98/notion-clone-nextjs)
-![GitHub stars](https://img.shields.io/github/stars/evanch98/notion-clone-nextjs?style=social)
-![GitHub forks](https://img.shields.io/github/forks/evanch98/notion-clone-nextjs?style=social)
+**"Where Students Thrive Together"**
 
-<br />
-November, 2023. <br />
-A Notion Clone web application built with Next.js, React, Tailwind CSS, TypeScript, Convex, Clerk Auth, Edge Store, and Zustand.
+A clean, community-driven academic platform for students to access past questions, quizzes, notes, and collaborate with peers to study effectively.
 
-## Features
-- Create, edit, and organize notes in a Notion-like interface.
-- Real-time updates for editing using Convex.
-- User authentication and management with Clerk Auth.
-- File upload and storage using Edge Store.
-- Responsive design with Tailwind CSS.
-- State management using Zustand.
+![StudyHive](https://img.shields.io/badge/Next.js-13-black?style=flat-square&logo=next.js)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=flat-square&logo=typescript)
+![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3-38bdf8?style=flat-square&logo=tailwindcss)
 
-## Getting Started
+## ✨ Features
 
-These instructions will help you set up and run the project on your local machine for development and testing purposes.
+### 📚 Academic Resources
+- **Past Questions Library** - Access years of past exam questions organized by course and semester
+- **Community Notes** - Rich-text notes with voting, saving, and commenting
+- **Interactive Quizzes** - Timed quizzes with instant feedback and explanations
+
+### 🎯 Navigation & Organization
+- **Level-based Hierarchy** - 100L → 200L → 300L → 400L
+- **Course Organization** - Browse courses by department and credit units
+- **Smart Search** - Global search with keyboard shortcut (⌘K)
+
+### 👥 Community Features
+- **Voting System** - Upvote/downvote notes to surface quality content
+- **Comments** - Discuss and clarify concepts with peers
+- **Leaderboard** - Compete for top contributor status
+- **Request System** - Request missing study materials
+
+### 🎨 UI/UX
+- **Notion-like Interface** - Clean, minimalistic design
+- **Dark Mode Support** - Easy on the eyes during late-night study sessions
+- **Responsive Design** - Works on desktop and mobile
+- **Resizable Sidebar** - Customize your workspace
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js 16.8 or later
+- npm, yarn, or pnpm
+
+### Installation
 
 1. **Clone the repository:**
 ```bash
-git clone https://github.com/evanch98/notion-clone-nextjs.git
-cd your-repo-name
+git clone <your-repo-url>
+cd notion-clone-nextjs
 ```
 
-2. **Install the required dependencies:**
+2. **Install dependencies:**
 ```bash
 npm install
 ```
 
-3. **Configure environment variables:**
-Create a `.env.local` file in the project root and set the necessary environment variables.
-```
-CONVEX_DEPLOYMENT=
-NEXT_PUBLIC_CONVEX_URL=
-
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
-CLERK_SECRET_KEY=
-
-EDGE_STORE_ACCESS_KEY=
-EDGE_STORE_SECRET_KEY=
-```
-
-4. **Run the development server:**
+3. **Run the development server:**
 ```bash
 npm run dev
 ```
 
-5. **Start building and customizing your Notion Clone!**
+4. **Open your browser:**
+Navigate to [http://localhost:3000](http://localhost:3000)
 
-## Technologies Used
-- [Next.js](https://nextjs.org/)
-- [React](https://react.dev/)
-- [TailwindCSS](https://tailwindcss.com/)
-- [TypeScript](https://www.typescriptlang.org/)
-- [Convex](https://www.convex.dev/)
-- [Clerk Auth](https://clerk.com/)
-- [Edge Store](https://edgestore.dev/)
-- [Zustand](https://docs.pmnd.rs/zustand/getting-started/introduction)
+## 📁 Project Structure
 
-## Acknowledgements
-- [class-variance-authority](https://www.npmjs.com/package/class-variance-authority)
-- [clsx](https://www.npmjs.com/package/clsx)
-- [cmdk](https://www.npmjs.com/package/cmdk)
-- [emoji-picker-react](https://www.npmjs.com/package/emoji-picker-react)
-- [lucide-react](https://www.npmjs.com/package/lucide-react)
-- [react-dropzone](https://www.npmjs.com/package/react-dropzone)
-- [react-textarea-autosize](https://www.npmjs.com/package/react-textarea-autosize)
-- [sonner](https://www.npmjs.com/package/sonner)
-- [tailwind-merge](https://www.npmjs.com/package/tailwind-merge)
-- [usehooks-ts](https://www.npmjs.com/package/usehooks-ts)
-- [zod](https://www.npmjs.com/package/zod)
+```
+├── app/
+│   ├── (main)/                    # Main application
+│   │   └── (routes)/
+│   │       ├── levels/            # Levels browsing
+│   │       ├── courses/[courseId] # Course details with resources
+│   │       ├── notes/[noteId]     # Note viewer with comments
+│   │       ├── quizzes/[quizId]   # Interactive quiz
+│   │       ├── leaderboard/       # Rankings
+│   │       ├── requests/          # Resource requests
+│   │       └── saved/             # Saved notes
+│   ├── (marketing)/               # Landing page
+│   └── (public)/                  # Public preview pages
+├── components/
+│   ├── modals/                    # Modal dialogs
+│   ├── providers/                 # Context providers
+│   └── ui/                        # shadcn/ui components
+├── hooks/                         # Custom React hooks
+└── lib/
+    ├── studyhive-data.ts          # Mock data & API
+    └── utils.ts                   # Helper functions
+```
+
+## 🎨 Design System
+
+### Colors
+- **Primary**: Amber/Orange gradient (`#f59e0b` → `#ea580c`)
+- **Background**: `#f7f7f7` (light) / `#1F1F1F` (dark)
+- **Cards**: `#ffffff` (light) / dark variants
+- **Accent Colors**: 
+  - Blue for quizzes
+  - Green for success states
+  - Purple for special features
+
+### Typography
+- **Font**: Inter (via Next.js font optimization)
+- **Headings**: Bold, clear hierarchy
+- **Body**: Clean, readable text
+
+### Components
+Built on [shadcn/ui](https://ui.shadcn.com/) with custom styling:
+- Buttons with amber accent
+- Cards with hover effects
+- Dialog modals
+- Dropdown menus
+- Command palette (search)
+
+## 🔧 Data Structure
+
+### User Roles
+| Role | Permissions |
+|------|-------------|
+| **Student** | Browse, download, create notes, vote, comment, save |
+| **Rep** | Upload PQs, create quizzes, moderate notes |
+| **Admin** | Full access, manage users, platform analytics |
+
+### Core Entities
+- **Levels** → Contains courses
+- **Courses** → Contains resources (PQs, Notes, Quizzes)
+- **Community Notes** → Rich text with voting/comments
+- **Quizzes** → Timed MCQ assessments
+- **Requests** → Student requests for materials
+
+### Reputation System
+```
+reputation = (noteUpvotes × 2) + saves + quizScores + comments - downvotes
+```
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Framework | Next.js 13 (App Router) |
+| Language | TypeScript |
+| Styling | Tailwind CSS |
+| UI Components | shadcn/ui |
+| State | Zustand |
+| Notifications | Sonner |
+| Icons | Lucide React |
+
+## 📝 Available Scripts
+
+```bash
+npm run dev      # Start development server
+npm run build    # Build for production
+npm start        # Start production server
+npm run lint     # Run ESLint
+```
+
+## 🔌 Adding a Real Backend
+
+This project uses mock data in `lib/studyhive-data.ts`. To connect a real backend:
+
+1. **Replace mock API** with actual API calls
+2. **Set up MongoDB** for data persistence
+3. **Configure Cloudflare R2** for file storage
+4. **Add JWT authentication** for user sessions
+5. **Implement real-time updates** with WebSockets (optional)
+
+### Recommended Backend Stack
+- **Database**: MongoDB Atlas
+- **File Storage**: Cloudflare R2
+- **Auth**: JWT with access/refresh tokens
+- **API**: Next.js API routes or Express.js
+
+## 🚧 Demo Limitations
+
+- Data resets on page refresh (in-memory storage)
+- File uploads use data URLs (not suitable for large files)
+- No real authentication
+- No real-time updates
+- No data persistence
+
+## 📄 API Endpoints (Future Backend)
+
+```
+POST /auth/signup
+POST /auth/login
+POST /auth/refresh
+
+GET  /levels
+GET  /levels/:id/courses
+GET  /courses/:id
+
+GET  /pq/:courseId
+POST /pq
+
+GET  /notes/:courseId
+POST /notes
+POST /notes/:id/upvote
+POST /notes/:id/save
+
+GET  /quiz/:courseId
+POST /quiz/attempt
+
+POST /requests
+GET  /requests
+
+GET  /leaderboard
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📜 License
+
+This project is open source and available for learning and building your own projects.
+
+## 🙏 Acknowledgements
+
+- [shadcn/ui](https://ui.shadcn.com/) - Beautiful UI components
+- [Lucide](https://lucide.dev/) - Beautiful icons
+- [Next.js](https://nextjs.org/) - React framework
+- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS
+
+---
+
+**StudyHive** - Where students thrive together 🐝

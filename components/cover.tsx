@@ -2,12 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
+import { studyHiveApi } from "@/lib/studyhive-data";
 import { useCoverImage } from "@/hooks/use-cover-image";
-import { useEdgeStore } from "@/lib/edgestore";
 import { cn } from "@/lib/utils";
-import { useMutation } from "convex/react";
 import { ImageIcon, X } from "lucide-react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
@@ -19,15 +16,10 @@ interface CoverProps {
 
 export const Cover = ({ url, preview }: CoverProps) => {
   const params = useParams();
-  const { edgestore } = useEdgeStore();
   const coverImage = useCoverImage();
-  const removeCoverImage = useMutation(api.documents.removeCoverImage);
 
-  const onRemove = async () => {
-    if (url) {
-      await edgestore.publicFiles.delete({ url: url });
-    }
-    removeCoverImage({ id: params.documentId as Id<"documents"> });
+  const onRemove = () => {
+    studyHiveApi.notes.removeCoverImage(params.documentId as string);
   };
 
   return (
@@ -68,3 +60,4 @@ export const Cover = ({ url, preview }: CoverProps) => {
 Cover.Skeleton = function CoverSkeleton() {
   return <Skeleton className="w-4 h-[12vh]" />;
 };
+

@@ -2,16 +2,15 @@
 
 import { Cover } from "@/components/cover";
 import { Toolbar } from "@/components/toolbar";
+import { DocumentHeader } from "@/components/document-header";
 import { Skeleton } from "@/components/ui/skeleton";
-import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
+import { studyHiveApi } from "@/lib/studyhive-data";
 import dynamic from "next/dynamic";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 interface DocumentIdPageProps {
   params: {
-    documentId: Id<"documents">;
+    documentId: string;
   };
 }
 
@@ -21,17 +20,23 @@ const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
     []
   );
 
-  const document = useQuery(api.documents.getById, {
-    documentId: params.documentId,
-  });
+  const [document, setDocument] = useState(studyHiveApi.notes.getById(params.documentId));
+  const [isLoading, setIsLoading] = useState(false);
 
-  const update = useMutation(api.documents.update);
+  useEffect(() => {
+    setDocument(studyHiveApi.notes.getById(params.documentId));
+  }, [params.documentId]);
 
   const onChange = (content: string) => {
-    update({ id: params.documentId, content: content });
+    if (document) {
+      const updated = studyHiveApi.notes.update(document._id, { content: content });
+      if (updated) {
+        setDocument(updated);
+      }
+    }
   };
 
-  if (document === undefined) {
+  if (isLoading) {
     return (
       <div>
         <Cover.Skeleton />
@@ -47,12 +52,13 @@ const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
     );
   }
 
-  if (document === null) {
+  if (!document) {
     return <div>Not found</div>;
   }
 
   return (
     <div className="pb-40">
+      <DocumentHeader documentId={document._id} title={document.title} />
       <Cover url={document.coverImage} />
       <div className="md:max-w-3xl lg:max-w-4xl mx-auto">
         <Toolbar initialData={document} />
@@ -63,3 +69,4 @@ const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
 };
 
 export default DocumentIdPage;
+

@@ -1,17 +1,15 @@
 "use client";
 
-import { Doc } from "@/convex/_generated/dataModel";
+import { MockDocument, studyHiveApi } from "@/lib/studyhive-data";
 import { IconPicker } from "@/components/icon-picker";
 import { Button } from "@/components/ui/button";
-import { useMutation } from "convex/react";
 import { ImageIcon, Smile, X } from "lucide-react";
 import { ElementRef, useRef, useState } from "react";
-import { api } from "@/convex/_generated/api";
 import TextareaAutosize from "react-textarea-autosize";
 import { useCoverImage } from "@/hooks/use-cover-image";
 
 interface ToolbarProps {
-  initialData: Doc<"documents">;
+  initialData: MockDocument;
   preview?: boolean;
 }
 
@@ -19,9 +17,6 @@ export const Toolbar = ({ initialData, preview }: ToolbarProps) => {
   const inputRef = useRef<ElementRef<"textarea">>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(initialData.title);
-
-  const update = useMutation(api.documents.update);
-  const removeIcon = useMutation(api.documents.removeIcon);
 
   const coverImage = useCoverImage();
 
@@ -38,8 +33,7 @@ export const Toolbar = ({ initialData, preview }: ToolbarProps) => {
 
   const onInput = (value: string) => {
     setValue(value);
-    update({
-      id: initialData._id,
+    studyHiveApi.notes.update(initialData._id, {
       title: value || "Untitled",
     });
   };
@@ -52,19 +46,17 @@ export const Toolbar = ({ initialData, preview }: ToolbarProps) => {
   };
 
   const onIconSelect = (icon: string) => {
-    update({
-      id: initialData._id,
+    studyHiveApi.notes.update(initialData._id, {
       icon,
     });
   };
 
   const onRemoveIcon = () => {
-    removeIcon({ id: initialData._id });
+    studyHiveApi.notes.removeIcon(initialData._id);
   };
 
   return (
     <div className="pl-[54px] group relative">
-      {/* Render this when the user is viewing their document */}
       {!!initialData.icon && !preview && (
         <div className="flex items-center gap-x-2 group/icon pt-6">
           <IconPicker onChange={onIconSelect}>
@@ -82,7 +74,6 @@ export const Toolbar = ({ initialData, preview }: ToolbarProps) => {
           </Button>
         </div>
       )}
-      {/* Render this when the guest is viewing others' document */}
       {!!initialData.icon && preview && (
         <p className="text-6xl pt-6">{initialData.icon}</p>
       )}
@@ -131,3 +122,4 @@ export const Toolbar = ({ initialData, preview }: ToolbarProps) => {
     </div>
   );
 };
+

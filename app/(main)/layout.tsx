@@ -1,27 +1,35 @@
 "use client";
 
-import { Spinner } from "@/components/spinner";
-import { useConvexAuth } from "convex/react";
-import { redirect } from "next/navigation";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Navigation } from "./_components/navigation";
 import { SearchCommand } from "@/components/search-command";
+import { useAuth } from "@/hooks/use-auth";
 
 const MainLayout = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, isLoading } = useConvexAuth();
+  const router = useRouter();
+  const { isAuthenticated, isLoading, checkAuth } = useAuth();
 
-  // if it is a loading state, show the Spinner component
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push("/login");
+    }
+  }, [isAuthenticated, isLoading, router]);
+
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center">
-        <Spinner size="lg" />
+        <div className="text-sm text-muted-foreground">Loading...</div>
       </div>
     );
   }
 
-  // to protect the route from being accessed without logging in.
-  // redirect the user to the landing page
   if (!isAuthenticated) {
-    return redirect("/");
+    return null;
   }
 
   return (
