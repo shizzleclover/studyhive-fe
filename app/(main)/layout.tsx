@@ -8,11 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 
 const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
-  const { isAuthenticated, isLoading, checkAuth } = useAuth();
-
-  useEffect(() => {
-    checkAuth();
-  }, []);
+  const { isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
