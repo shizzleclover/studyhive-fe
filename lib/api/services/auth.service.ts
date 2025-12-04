@@ -11,6 +11,7 @@ import {
     ResetPasswordRequest,
     ChangePasswordRequest,
     User,
+    UpdateProfileRequest,
 } from '../types';
 
 export const authService = {
@@ -185,6 +186,24 @@ export const authService = {
 
         if (!user || !user._id) {
             console.error('Invalid user object received:', response.data);
+            throw new Error('Invalid user data from server');
+        }
+
+        return user as User;
+    },
+
+    /**
+     * Update current user's profile
+     * POST /api/auth/profile
+     */
+    async updateProfile(data: UpdateProfileRequest): Promise<User> {
+        const response = await apiClient.post<any>('/api/auth/profile', data);
+
+        // Backend returns same shape as /api/auth/me
+        const user = response.data?.data?.user ?? response.data?.data ?? response.data?.user ?? response.data;
+
+        if (!user || !user._id) {
+            console.error('Invalid user object received from profile update:', response.data);
             throw new Error('Invalid user data from server');
         }
 

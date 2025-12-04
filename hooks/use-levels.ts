@@ -1,21 +1,33 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { levelsService } from '@/lib/api/services/levels.service';
-import { CreateLevelRequest, UpdateLevelRequest } from '@/lib/api/types';
+import { CreateLevelRequest, UpdateLevelRequest, LevelsParams, Level } from '@/lib/api/types';
 import { toast } from 'sonner';
 
 // Query keys
 export const levelsKeys = {
     all: ['levels'] as const,
-    lists: () => [...levelsKeys.all, 'list'] as const,
+    lists: (params?: LevelsParams) => [...levelsKeys.all, 'list', params ?? {}] as const,
+    detail: (id: string) => [...levelsKeys.all, 'detail', id] as const,
 };
 
 /**
- * Get all levels
+ * Get all levels (optionally filtered)
  */
-export function useLevels() {
+export function useLevels(params?: LevelsParams) {
     return useQuery({
-        queryKey: levelsKeys.lists(),
-        queryFn: () => levelsService.getAllLevels(),
+        queryKey: levelsKeys.lists(params),
+        queryFn: () => levelsService.getAllLevels(params),
+    });
+}
+
+/**
+ * Get a single level by ID
+ */
+export function useLevel(id: string) {
+    return useQuery({
+        queryKey: levelsKeys.detail(id),
+        queryFn: () => levelsService.getLevelById(id),
+        enabled: !!id,
     });
 }
 

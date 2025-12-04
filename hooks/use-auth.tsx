@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { authService } from "@/lib/api/services/auth.service";
 import { tokenStorage } from "@/lib/token-storage";
-import { User } from "@/lib/api/types";
+import { UpdateProfileRequest, User } from "@/lib/api/types";
 import { AxiosError } from "axios";
 
 type AuthStore = {
@@ -12,10 +12,11 @@ type AuthStore = {
   verificationEmail: string | null;
   checkAuth: () => Promise<void>;
   login: (email: string, password: string) => Promise<{ success: boolean; needsVerification?: boolean; error?: string }>;
-  signup: (name: string, email: string, password: string) => Promise<{ success: boolean; needsVerification?: boolean; error?: string }>;
+  signup: (name: string, username: string, email: string, password: string) => Promise<{ success: boolean; needsVerification?: boolean; error?: string }>;
   logout: () => Promise<void>;
   verifyEmail: (otp: string) => Promise<{ success: boolean; error?: string }>;
   resendVerification: (email: string) => Promise<{ success: boolean; error?: string }>;
+  updateProfile: (payload: UpdateProfileRequest) => Promise<{ success: boolean; error?: string }>;
 };
 
 export const useAuth = create<AuthStore>((set, get) => ({
@@ -154,9 +155,9 @@ export const useAuth = create<AuthStore>((set, get) => ({
     }
   },
 
-  signup: async (name: string, email: string, password: string) => {
+  signup: async (name: string, username: string, email: string, password: string) => {
     try {
-      const response = await authService.signup({ name, email, password });
+      const response = await authService.signup({ name, username, email, password });
 
       // Store tokens
       tokenStorage.setTokens(response.accessToken, response.refreshToken);
@@ -235,6 +236,24 @@ export const useAuth = create<AuthStore>((set, get) => ({
     } catch (error) {
       const axiosError = error as AxiosError<{ message: string }>;
       const errorMessage = axiosError.response?.data?.message || 'Failed to resend verification email';
+      return { success: false, error: errorMessage };
+    }
+  },
+  
+  updateProfile: async (payload: UpdateProfileRequest) => {
+    try {
+      const updatedUser = await authService.updateProfile(payload);
+
+      set((state) => ({
+        ...state,
+        user: updatedUser,
+      }));
+
+      return { success: true };
+    } catch (error) {
+      console.error('Update profile error:', error);
+      const axiosError = error as AxiosError<{ message?: string }>;
+      const errorMessage = axiosError.response?.data?.message || 'Failed to update profile';
       return { success: false, error: errorMessage };
     }
   },

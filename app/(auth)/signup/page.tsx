@@ -14,6 +14,7 @@ const SignupPage = () => {
   const router = useRouter();
   const { signup } = useAuth();
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -35,7 +36,7 @@ const SignupPage = () => {
     setIsLoading(true);
 
     try {
-      const result = await signup(name, email, password);
+      const result = await signup(name, username, email, password);
 
       if (result.success) {
         toast.success("Account created! Please check your email.");
@@ -70,6 +71,20 @@ const SignupPage = () => {
               placeholder="John Doe"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              required
+              disabled={isLoading}
+              className="bg-transparent transition-all duration-300 ease-in-out focus:ring-2 focus:ring-primary/50"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="username">Username</Label>
+            <Input
+              id="username"
+              type="text"
+              placeholder="johndoe"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               required
               disabled={isLoading}
               className="bg-transparent transition-all duration-300 ease-in-out focus:ring-2 focus:ring-primary/50"

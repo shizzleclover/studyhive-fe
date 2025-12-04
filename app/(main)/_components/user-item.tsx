@@ -73,12 +73,18 @@ export const UserItem = () => {
                 {user.name?.charAt(0)}
               </div>
               <div>
-                <p className="font-medium">{user.name}</p>
+                <p className="font-medium">
+                  {user.username || user.name}
+                </p>
                 <p className="text-xs text-muted-foreground">{user.email}</p>
               </div>
             </div>
           ) : (
-            <div className="text-sm text-muted-foreground">Fetching profile...</div>
+            <div className="text-sm text-muted-foreground">
+              {isAuthenticated
+                ? "Your profile isn’t fully loaded yet. Visit your dashboard to finish setting it up."
+                : "Fetching profile..."}
+            </div>
           )}
           
           {user && (

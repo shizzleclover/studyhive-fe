@@ -36,6 +36,7 @@ export interface PaginatedResponse<T> {
 export interface User {
     _id: string;
     name: string;
+    username?: string;
     email: string;
     role: 'student' | 'rep' | 'admin';
     isVerified: boolean;
@@ -62,6 +63,7 @@ export interface LoginRequest {
 
 export interface SignupRequest {
     name: string;
+    username: string;
     email: string;
     password: string;
 }
@@ -95,6 +97,7 @@ export interface ChangePasswordRequest {
 // User Types
 export interface UpdateProfileRequest {
     name?: string;
+    username?: string;
     bio?: string;
     profilePicture?: string;
 }
@@ -417,9 +420,8 @@ export interface SearchParams extends PaginationParams {
 export interface Level {
     _id: string;
     name: string;
+    code: string;
     description?: string;
-    department?: string;
-    faculty?: string;
     order?: number;
     isActive: boolean;
     createdAt: string;
@@ -428,17 +430,24 @@ export interface Level {
 
 export interface CreateLevelRequest {
     name: string;
+    code: string;
     description?: string;
-    department?: string;
-    faculty?: string;
     order?: number;
 }
 
 export interface UpdateLevelRequest {
     name?: string;
+    code?: string;
     description?: string;
-    department?: string;
-    faculty?: string;
     order?: number;
+    isActive?: boolean;
+}
+
+export interface LevelsListResponse {
+    levels: Level[];
+    total: number;
+}
+
+export interface LevelsParams {
     isActive?: boolean;
 }

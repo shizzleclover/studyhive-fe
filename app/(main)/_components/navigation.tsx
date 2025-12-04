@@ -203,7 +203,7 @@ export const Navigation = () => {
 
   const handleCreateNote = async () => {
     if (!lastCourseId) {
-      toast.info("Select a course before creating a note.");
+      toast("Select a course before creating a note.");
       return;
     }
     try {
@@ -220,18 +220,7 @@ export const Navigation = () => {
   };
 
   if (!mounted) {
-    return (
-      <aside className="group/sidebar h-full bg-secondary overflow-y-auto relative flex w-[260px] flex-col z-[99999]">
-        <div className="p-4 flex items-center gap-2">
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-white">
-            <GraduationCap className="h-5 w-5" />
-          </div>
-          <span className="font-semibold text-lg">
-            Study<span className="text-amber-500">Hive</span>
-          </span>
-        </div>
-      </aside>
-    );
+    return null;
   }
 
   return (
@@ -389,6 +378,19 @@ export const Navigation = () => {
             label="Requests" 
             onClick={() => router.push("/requests")}
             showBadge={pendingRequests?.pagination?.total}
+          />
+        </div>
+
+        {/* Admin Section (role-gated in page components) */}
+        <div className="px-3 mt-6">
+          <div className="text-xs font-semibold text-muted-foreground mb-2 px-3 uppercase tracking-wider">
+            Admin
+          </div>
+          <NavItem
+            icon={Settings}
+            label="Admin Console"
+            onClick={() => router.push("/admin")}
+            isActive={pathname?.startsWith("/admin")}
           />
         </div>
 
