@@ -33,14 +33,26 @@ export const useAuth = create<AuthStore>((set, get) => ({
         return;
       }
 
-      // Fetch current user
-      const user = await authService.getCurrentUser();
-      set({
-        user,
-        isAuthenticated: true,
-        isLoading: false,
-        needsVerification: !user.isVerified
-      });
+      // Try to fetch current user
+      try {
+        const user = await authService.getCurrentUser();
+        set({
+          user,
+          isAuthenticated: true,
+          isLoading: false,
+          needsVerification: !user.isVerified
+        });
+      } catch (fetchError) {
+        console.warn('Failed to fetch user on auth check, but tokens exist:', fetchError);
+        // Tokens exist but user fetch failed - keep them authenticated
+        // The dashboard/app will handle the missing user gracefully
+        set({
+          user: null,
+          isAuthenticated: true, // Keep authenticated since tokens exist
+          isLoading: false,
+          needsVerification: false
+        });
+      }
     } catch (error) {
       console.error('Auth check failed:', error);
       tokenStorage.clearTokens();
