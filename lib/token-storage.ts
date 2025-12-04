@@ -36,6 +36,11 @@ export const tokenStorage = {
     },
 
     hasTokens(): boolean {
-        return !!(this.getAccessToken() && this.getRefreshToken());
+        const access = this.getAccessToken();
+        const refresh = this.getRefreshToken();
+        // Treat missing or stringified "undefined"/"null" as no token
+        const isValid = (token: string | null) =>
+            !!token && token !== 'undefined' && token !== 'null';
+        return isValid(access) && isValid(refresh);
     }
 };

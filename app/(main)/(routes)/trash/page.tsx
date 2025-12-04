@@ -1,26 +1,42 @@
 "use client";
 
-import { studyHiveApi } from "@/lib/studyhive-data";
 import { Button } from "@/components/ui/button";
 import { Trash2, RotateCcw, X } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { IconRenderer } from "@/components/icon-renderer";
 import { formatDate } from "@/lib/date-utils";
+import { useQuery } from "@tanstack/react-query";
+import { communityNotesService } from "@/lib/api/services/community-notes.service";
+import { useUpdateNote, useDeleteNote } from "@/hooks/use-community-notes";
 
 const TrashPage = () => {
-  const router = useRouter();
-  const archivedNotes = studyHiveApi.notes.getArchived();
+  const { data: archivedResponse, isLoading, refetch } = useQuery({
+    queryKey: ["archived-notes"],
+    queryFn: () => communityNotesService.getMyNotes({ status: "archived", limit: 50 }),
+  });
+  const archivedNotes = archivedResponse?.data ?? [];
+  const { mutateAsync: updateNote } = useUpdateNote();
+  const { mutateAsync: deleteNote } = useDeleteNote();
 
-  const handleRestore = (noteId: string) => {
-    studyHiveApi.notes.restore(noteId);
-    toast.success("Note restored");
+  const handleRestore = async (noteId: string) => {
+    try {
+      await updateNote({ id: noteId, data: { isArchived: false } });
+      toast.success("Note restored");
+      refetch();
+    } catch (error: any) {
+      toast.error(error?.message || "Unable to restore note");
+    }
   };
 
-  const handleRemove = (noteId: string) => {
+  const handleRemove = async (noteId: string) => {
     if (confirm("Are you sure you want to permanently delete this note?")) {
-      studyHiveApi.notes.remove(noteId);
-      toast.success("Note permanently deleted");
+      try {
+        await deleteNote(noteId);
+        toast.success("Note permanently deleted");
+        refetch();
+      } catch (error: any) {
+        toast.error(error?.message || "Unable to delete note");
+      }
     }
   };
 
@@ -34,7 +50,12 @@ const TrashPage = () => {
           </p>
         </div>
 
-        {archivedNotes.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center py-12 text-muted-foreground">
+            <Trash2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p className="text-sm">Loading deleted notes...</p>
+          </div>
+        ) : archivedNotes.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <Trash2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p className="text-sm">No deleted notes</p>

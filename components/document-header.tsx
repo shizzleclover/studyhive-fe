@@ -7,9 +7,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { studyHiveApi } from "@/lib/studyhive-data";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useUpdateNote } from "@/hooks/use-community-notes";
 
 interface DocumentHeaderProps {
   documentId: string;
@@ -18,11 +18,19 @@ interface DocumentHeaderProps {
 
 export const DocumentHeader = ({ documentId, title }: DocumentHeaderProps) => {
   const router = useRouter();
+  const { mutateAsync: updateNote, isPending } = useUpdateNote();
 
-  const handleDelete = () => {
-    studyHiveApi.notes.archive(documentId);
-    toast.success("Note moved to trash");
-    router.push("/documents");
+  const handleDelete = async () => {
+    try {
+      await updateNote({
+        id: documentId,
+        data: { isArchived: true },
+      });
+      toast.success("Note moved to trash");
+      router.push("/documents");
+    } catch (error: any) {
+      toast.error(error?.message || "Unable to delete note");
+    }
   };
 
   const handlePublish = () => {
@@ -44,7 +52,7 @@ export const DocumentHeader = ({ documentId, title }: DocumentHeaderProps) => {
           </button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="text-muted-foreground hover:text-foreground transition-colors">
+              <button className="text-muted-foreground hover:text-foreground transition-colors" disabled={isPending}>
                 <MoreHorizontal className="h-4 w-4" />
               </button>
             </DropdownMenuTrigger>

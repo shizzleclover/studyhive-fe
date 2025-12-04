@@ -1,15 +1,18 @@
 "use client";
 
-import { MockDocument, studyHiveApi } from "@/lib/studyhive-data";
 import { IconPicker } from "@/components/icon-picker";
 import { Button } from "@/components/ui/button";
 import { ImageIcon, Smile, X } from "lucide-react";
-import { ElementRef, useRef, useState } from "react";
+import { ElementRef, useEffect, useRef, useState } from "react";
 import TextareaAutosize from "react-textarea-autosize";
 import { useCoverImage } from "@/hooks/use-cover-image";
+import { useUpdateNote } from "@/hooks/use-community-notes";
+import { toast } from "sonner";
+import { CommunityNote } from "@/lib/api/types";
+import { useDebounce } from "usehooks-ts";
 
 interface ToolbarProps {
-  initialData: MockDocument;
+  initialData: Pick<CommunityNote, "_id" | "title" | "icon" | "coverImage">;
   preview?: boolean;
 }
 
@@ -17,8 +20,10 @@ export const Toolbar = ({ initialData, preview }: ToolbarProps) => {
   const inputRef = useRef<ElementRef<"textarea">>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(initialData.title);
+  const debouncedValue = useDebounce(value, 400);
 
   const coverImage = useCoverImage();
+  const { mutateAsync: updateNote } = useUpdateNote();
 
   const enableInput = () => {
     if (preview) return;
@@ -31,11 +36,8 @@ export const Toolbar = ({ initialData, preview }: ToolbarProps) => {
 
   const disableInput = () => setIsEditing(false);
 
-  const onInput = (value: string) => {
-    setValue(value);
-    studyHiveApi.notes.update(initialData._id, {
-      title: value || "Untitled",
-    });
+  const onInput = (next: string) => {
+    setValue(next);
   };
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -45,15 +47,48 @@ export const Toolbar = ({ initialData, preview }: ToolbarProps) => {
     }
   };
 
-  const onIconSelect = (icon: string) => {
-    studyHiveApi.notes.update(initialData._id, {
-      icon,
-    });
+  const onIconSelect = async (icon: string) => {
+    try {
+      await updateNote({
+        id: initialData._id,
+        data: { icon },
+      });
+      toast.success("Icon updated");
+    } catch (error: any) {
+      toast.error(error?.message || "Unable to update icon");
+    }
   };
 
-  const onRemoveIcon = () => {
-    studyHiveApi.notes.removeIcon(initialData._id);
+  const onRemoveIcon = async () => {
+    try {
+      await updateNote({
+        id: initialData._id,
+        data: { icon: "" },
+      });
+    } catch (error: any) {
+      toast.error(error?.message || "Unable to remove icon");
+    }
   };
+
+  const [lastPersisted, setLastPersisted] = useState(initialData.title);
+
+  useEffect(() => {
+    setValue(initialData.title);
+    setLastPersisted(initialData.title);
+  }, [initialData._id, initialData.title]);
+
+  useEffect(() => {
+    if (preview) return;
+    if (debouncedValue === lastPersisted) return;
+    setLastPersisted(debouncedValue);
+    const nextTitle = debouncedValue || "Untitled";
+    updateNote({
+      id: initialData._id,
+      data: { title: nextTitle },
+    }).catch((error: any) => {
+      toast.error(error?.message || "Unable to update title");
+    });
+  }, [debouncedValue, lastPersisted, preview, updateNote, initialData._id]);
 
   return (
     <div className="pl-[54px] group relative">

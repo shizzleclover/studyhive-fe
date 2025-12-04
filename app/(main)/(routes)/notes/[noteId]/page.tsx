@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { studyHiveApi, mockUsers } from "@/lib/studyhive-data";
 import { Button } from "@/components/ui/button";
 import { 
   ArrowLeft, 
@@ -15,9 +14,14 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { IconRenderer } from "@/components/icon-renderer";
 import { formatDate } from "@/lib/date-utils";
 import { Input } from "@/components/ui/input";
+import { useCommunityNote } from "@/hooks/use-community-notes";
+import { useQuery } from "@tanstack/react-query";
+import { commentsService } from "@/lib/api/services/comments.service";
+import { votesService } from "@/lib/api/services/votes.service";
+import { userService } from "@/lib/api/services/user.service";
+import { IconRenderer } from "@/components/icon-renderer";
 
 interface NotePageProps {
   params: {
@@ -28,11 +32,26 @@ interface NotePageProps {
 const NotePage = ({ params }: NotePageProps) => {
   const router = useRouter();
   const [newComment, setNewComment] = useState("");
-  
-  const note = studyHiveApi.notes.getById(params.noteId);
-  const comments = studyHiveApi.comments.getByNote(params.noteId);
-  const course = note ? studyHiveApi.courses.getById(note.courseId) : null;
-  const author = note ? mockUsers.find(u => u._id === note.authorId) : null;
+  const { data: note, isLoading: isNoteLoading, refetch: refetchNote } = useCommunityNote(params.noteId);
+  const {
+    data: commentsData,
+    isLoading: isCommentsLoading,
+    refetch: refetchComments,
+  } = useQuery({
+    queryKey: ["comments", params.noteId],
+    queryFn: () => commentsService.getComments(params.noteId, "CommunityNote"),
+  });
+  const comments = commentsData?.data ?? [];
+  const courseCode = typeof note?.courseId === "string" ? note?.courseId : note?.courseId?.code;
+  const authorName = typeof note?.authorId === "string" ? "" : note?.authorId?.name;
+
+  if (isNoteLoading) {
+    return (
+      <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+        Loading note...
+      </div>
+    );
+  }
 
   if (!note) {
     return (
@@ -47,26 +66,44 @@ const NotePage = ({ params }: NotePageProps) => {
     );
   }
 
-  const handleUpvote = () => {
-    studyHiveApi.notes.upvote(note._id);
-    toast.success("Upvoted!");
+  const handleVote = async (voteType: "upvote" | "downvote") => {
+    try {
+      await votesService.castVote({
+        targetId: note._id,
+        targetType: "CommunityNote",
+        voteType,
+      });
+      toast.success(voteType === "upvote" ? "Upvoted!" : "Downvoted");
+      refetchNote();
+    } catch (error: any) {
+      toast.error(error?.message || "Unable to register vote");
+    }
   };
 
-  const handleDownvote = () => {
-    studyHiveApi.notes.downvote(note._id);
-    toast.success("Downvoted");
+  const handleSave = async () => {
+    try {
+      await userService.saveNote(note._id);
+      toast.success("Note saved!");
+    } catch (error: any) {
+      toast.error(error?.message || "Unable to save note");
+    }
   };
 
-  const handleSave = () => {
-    studyHiveApi.notes.save(note._id);
-    toast.success("Note saved!");
-  };
-
-  const handleComment = () => {
+  const handleComment = async () => {
     if (!newComment.trim()) return;
-    studyHiveApi.comments.create(note._id, newComment);
-    setNewComment("");
-    toast.success("Comment added!");
+    try {
+      await commentsService.createComment({
+        parentId: note._id,
+        parentType: "CommunityNote",
+        content: newComment,
+      });
+      setNewComment("");
+      toast.success("Comment added!");
+      refetchComments();
+      refetchNote();
+    } catch (error: any) {
+      toast.error(error?.message || "Unable to post comment");
+    }
   };
 
   const handleShare = () => {
@@ -101,13 +138,13 @@ const NotePage = ({ params }: NotePageProps) => {
         <div className="mb-6">
           <h1 className="text-2xl font-semibold mb-2">{note.title}</h1>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <span>{author?.name}</span>
+            <span>{authorName}</span>
             <span>•</span>
             <span>{formatDate(note.createdAt)}</span>
-            {course && (
+            {courseCode && (
               <>
                 <span>•</span>
-                <span>{course.code}</span>
+                <span>{courseCode}</span>
               </>
             )}
           </div>
@@ -122,14 +159,14 @@ const NotePage = ({ params }: NotePageProps) => {
         {/* Actions Bar */}
         <div className="flex items-center gap-4 py-3 border-t border-b mb-6">
           <button 
-            onClick={handleUpvote}
+            onClick={() => handleVote("upvote")}
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ThumbsUp className="h-4 w-4" />
             <span>{note.upvotes}</span>
           </button>
           <button 
-            onClick={handleDownvote}
+            onClick={() => handleVote("downvote")}
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ThumbsDown className="h-4 w-4" />
@@ -171,7 +208,11 @@ const NotePage = ({ params }: NotePageProps) => {
 
           {/* Comments List */}
           <div className="space-y-4">
-            {comments.length === 0 ? (
+            {isCommentsLoading ? (
+              <p className="text-center text-muted-foreground py-8">
+                Loading comments...
+              </p>
+            ) : comments.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
                 No comments yet. Be the first to comment!
               </p>
@@ -179,11 +220,11 @@ const NotePage = ({ params }: NotePageProps) => {
               comments.map((comment) => (
                 <div key={comment._id} className="flex gap-3 p-4 bg-muted/50 rounded-lg">
                   <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
-                    <IconRenderer iconName={comment.userAvatar || "User"} className="h-5 w-5" />
+                    <IconRenderer iconName="User" className="h-5 w-5" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-sm">{comment.userName}</span>
+                      <span className="font-medium text-sm">{comment.author?.name}</span>
                       <span className="text-xs text-muted-foreground">
                         {formatDate(comment.createdAt)}
                       </span>

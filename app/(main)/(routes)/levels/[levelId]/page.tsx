@@ -1,10 +1,13 @@
 "use client";
 
-import { studyHiveApi } from "@/lib/studyhive-data";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { IconRenderer } from "@/components/icon-renderer";
+import { useLevels } from "@/hooks/use-levels";
+import { useCourses } from "@/hooks/use-courses";
+import { useEffect, useMemo } from "react";
+import { useStudyFilters } from "@/hooks/use-study-filters";
 
 interface LevelPageProps {
   params: {
@@ -14,8 +17,25 @@ interface LevelPageProps {
 
 const LevelPage = ({ params }: LevelPageProps) => {
   const router = useRouter();
-  const level = studyHiveApi.levels.getById(params.levelId);
-  const courses = studyHiveApi.levels.getCourses(params.levelId);
+  const { data: levels, isLoading } = useLevels();
+  const { data: courses, isLoading: isCoursesLoading } = useCourses({ levelId: params.levelId });
+  const { setLevel, setCourse } = useStudyFilters();
+  useEffect(() => {
+    setLevel(params.levelId);
+  }, [params.levelId, setLevel]);
+
+  const level = useMemo(() => {
+    const list = Array.isArray(levels) ? levels : (levels as any)?.data ?? [];
+    return list.find((lvl: any) => lvl._id === params.levelId);
+  }, [levels, params.levelId]);
+
+  if (isLoading || isCoursesLoading) {
+    return (
+      <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+        Loading level...
+      </div>
+    );
+  }
 
   if (!level) {
     return (
@@ -54,10 +74,13 @@ const LevelPage = ({ params }: LevelPageProps) => {
         </div>
 
         <div className="space-y-2">
-          {courses.map((course) => (
+          {(courses ?? []).map((course) => (
             <div
               key={course._id}
-              onClick={() => router.push(`/courses/${course._id}`)}
+              onClick={() => {
+                setCourse(course._id);
+                router.push(`/courses/${course._id}`);
+              }}
               role="button"
               className="group min-h-[60px] px-4 py-3 w-full hover:bg-primary/5 flex items-center gap-3 text-muted-foreground font-medium rounded-md transition-colors cursor-pointer"
             >
@@ -72,7 +95,7 @@ const LevelPage = ({ params }: LevelPageProps) => {
           ))}
         </div>
 
-        {courses.length === 0 && (
+        {(courses?.length ?? 0) === 0 && (
           <div className="text-center py-12 text-muted-foreground">
             <p className="text-sm">No courses available for this level yet.</p>
           </div>

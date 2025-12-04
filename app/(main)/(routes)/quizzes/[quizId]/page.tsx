@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { studyHiveApi } from "@/lib/studyhive-data";
 import { Button } from "@/components/ui/button";
 import { 
   ArrowLeft, 
@@ -13,6 +12,8 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { quizzesService } from "@/lib/api/services/quizzes.service";
 
 interface QuizPageProps {
   params: {
@@ -24,8 +25,11 @@ type QuizState = "intro" | "active" | "results";
 
 const QuizPage = ({ params }: QuizPageProps) => {
   const router = useRouter();
-  const quiz = studyHiveApi.quizzes.getById(params.quizId);
-  const course = quiz ? studyHiveApi.courses.getById(quiz.courseId) : null;
+  const { data: quiz, isLoading } = useQuery({
+    queryKey: ["quiz", params.quizId],
+    queryFn: () => quizzesService.getQuizById(params.quizId, true),
+  });
+  const course = quiz && typeof quiz.courseId !== "string" ? quiz.courseId : null;
 
   const [quizState, setQuizState] = useState<QuizState>("intro");
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -47,6 +51,14 @@ const QuizPage = ({ params }: QuizPageProps) => {
       return () => clearInterval(timer);
     }
   }, [quizState, timeLeft]);
+
+  if (isLoading) {
+    return (
+      <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+        Loading quiz...
+      </div>
+    );
+  }
 
   if (!quiz) {
     return (
@@ -73,16 +85,22 @@ const QuizPage = ({ params }: QuizPageProps) => {
     setSelectedAnswers(newAnswers);
   };
 
-  const handleSubmit = () => {
-    const result = studyHiveApi.quizzes.submitAttempt(
-      quiz._id, 
-      selectedAnswers,
-      (quiz.timeLimitMins * 60) - timeLeft
-    );
-    if (result) {
-      setResults(result);
+  const handleSubmit = async () => {
+    try {
+      const result = await quizzesService.submitQuizAttempt(quiz._id, {
+        answers: selectedAnswers,
+        timeSpent: (quiz.timeLimitMins * 60) - timeLeft,
+      });
+      setResults({
+        score: result.score,
+        correct: result.correct,
+        total: result.total,
+      });
+    } catch (error) {
+      // silently fail
+    } finally {
+      setQuizState("results");
     }
-    setQuizState("results");
   };
 
   const restartQuiz = () => {

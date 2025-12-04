@@ -7,20 +7,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { studyHiveApi } from "@/lib/studyhive-data";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { ChevronsUpDown, LogOut, User, Trophy } from "lucide-react";
-import { IconRenderer } from "@/components/icon-renderer";
 
 export const UserItem = () => {
   const router = useRouter();
-  const { logout } = useAuth();
-  const user = studyHiveApi.auth.getCurrentUser();
+  const { logout, user, isAuthenticated } = useAuth();
 
-  const handleLogout = () => {
-    logout();
-    router.push("/");
+  const handleLogout = async () => {
+    await logout();
+    router.push("/login");
   };
 
   const getRoleBadge = (role: string) => {
@@ -34,7 +31,7 @@ export const UserItem = () => {
     }
   };
 
-  const roleBadge = getRoleBadge(user.role);
+  const roleBadge = user ? getRoleBadge(user.role) : null;
 
   return (
     <DropdownMenu>
@@ -44,16 +41,20 @@ export const UserItem = () => {
           className="flex items-center text-sm p-2 w-full hover:bg-primary/5 rounded-md transition-colors"
         >
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30">
-              <IconRenderer iconName={user.avatar || "User"} className="h-4 w-4" />
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 text-xs font-semibold">
+              {user?.name?.charAt(0) || "S"}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user.name}</p>
-              <div className="flex items-center gap-1">
-                <span className={`text-[10px] px-1.5 py-0.5 rounded ${roleBadge.color}`}>
-                  {roleBadge.label}
-                </span>
-              </div>
+              <p className="text-sm font-medium truncate">
+                {user?.name || (isAuthenticated ? "Student" : "Guest")}
+              </p>
+              {roleBadge && (
+                <div className="flex items-center gap-1">
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded ${roleBadge.color}`}>
+                    {roleBadge.label}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
           <ChevronsUpDown className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -66,26 +67,32 @@ export const UserItem = () => {
         forceMount
       >
         <div className="p-3">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30">
-              <IconRenderer iconName={user.avatar || "User"} className="h-6 w-6" />
+          {user ? (
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 text-lg font-semibold">
+                {user.name?.charAt(0)}
+              </div>
+              <div>
+                <p className="font-medium">{user.name}</p>
+                <p className="text-xs text-muted-foreground">{user.email}</p>
+              </div>
             </div>
-            <div>
-              <p className="font-medium">{user.name}</p>
-              <p className="text-xs text-muted-foreground">{user.email}</p>
-            </div>
-          </div>
+          ) : (
+            <div className="text-sm text-muted-foreground">Fetching profile...</div>
+          )}
           
-          <div className="flex items-center gap-4 mt-4 p-2 bg-muted rounded-lg">
-            <div className="flex items-center gap-1">
-              <Trophy className="h-4 w-4 text-amber-500" />
-              <span className="text-sm font-medium">{user.reputationScore}</span>
-              <span className="text-xs text-muted-foreground">rep</span>
+          {user && (
+            <div className="flex items-center gap-4 mt-4 p-2 bg-muted rounded-lg">
+              <div className="flex items-center gap-1">
+                <Trophy className="h-4 w-4 text-amber-500" />
+                <span className="text-sm font-medium">{user.reputationScore}</span>
+                <span className="text-xs text-muted-foreground">rep</span>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {user.notesCreated} notes created
+              </div>
             </div>
-            <div className="text-xs text-muted-foreground">
-              {user.savedNotes.length} saved notes
-            </div>
-          </div>
+          )}
         </div>
         
         <DropdownMenuSeparator />

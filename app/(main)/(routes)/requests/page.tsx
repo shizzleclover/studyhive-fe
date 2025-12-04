@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { studyHiveApi } from "@/lib/studyhive-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -23,9 +22,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useQuery } from "@tanstack/react-query";
+import { requestsService } from "@/lib/api/services/requests.service";
+import { useCourses } from "@/hooks/use-courses";
+import { RequestType } from "@/lib/api/types";
 
 const RequestsPage = () => {
-  const [requests, setRequests] = useState(studyHiveApi.requests.getAll());
   const [filter, setFilter] = useState<"all" | "pending" | "resolved">("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newRequest, setNewRequest] = useState({
@@ -33,8 +35,13 @@ const RequestsPage = () => {
     type: "pq" as "pq" | "notes" | "quiz",
     message: "",
   });
+  const { data: courses } = useCourses();
+  const { data: requestsResponse, refetch, isLoading } = useQuery({
+    queryKey: ["requests", filter],
+    queryFn: () => requestsService.getRequests({ status: filter === "all" ? undefined : filter, limit: 50, page: 1 }),
+  });
 
-  const courses = studyHiveApi.courses.getAll();
+  const requests = requestsResponse?.data ?? [];
 
   const filteredRequests = requests.filter(req => {
     if (filter === "all") return true;
@@ -67,17 +74,25 @@ const RequestsPage = () => {
     }
   };
 
-  const handleSubmitRequest = () => {
+  const handleSubmitRequest = async () => {
     if (!newRequest.courseId || !newRequest.message) {
       toast.error("Please fill in all fields");
       return;
     }
 
-    studyHiveApi.requests.create(newRequest);
-    setRequests(studyHiveApi.requests.getAll());
-    setNewRequest({ courseId: "", type: "pq", message: "" });
-    setIsDialogOpen(false);
-    toast.success("Request submitted successfully!");
+    try {
+      await requestsService.createRequest({
+        courseId: newRequest.courseId,
+        type: newRequest.type as RequestType,
+        message: newRequest.message,
+      });
+      setNewRequest({ courseId: "", type: "pq", message: "" });
+      setIsDialogOpen(false);
+      toast.success("Request submitted successfully!");
+      refetch();
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to submit request");
+    }
   };
 
   return (
@@ -111,9 +126,9 @@ const RequestsPage = () => {
                     className="w-full p-2 border rounded-md bg-background"
                   >
                     <option value="">Select a course</option>
-                    {courses.map((course) => (
+                    {(courses ?? []).map((course) => (
                       <option key={course._id} value={course._id}>
-                        {course.icon} {course.code} - {course.title}
+                        {typeof course.level === "string" ? "" : course.level?.name} {course.code} - {course.title}
                       </option>
                     ))}
                   </select>
@@ -180,7 +195,11 @@ const RequestsPage = () => {
         </div>
 
         {/* Requests List */}
-        {filteredRequests.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center py-12 text-muted-foreground">
+            Loading requests...
+          </div>
+        ) : filteredRequests.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <p className="text-sm">
               {filter === "all" 

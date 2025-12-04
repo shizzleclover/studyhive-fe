@@ -2,35 +2,42 @@
 
 import { SingleImageDropzone } from "@/components/single-image-dropzone";
 import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
-import { studyHiveApi } from "@/lib/studyhive-data";
 import { useCoverImage } from "@/hooks/use-cover-image";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useFileUpload } from "@/hooks/use-upload";
+import { useUpdateNote } from "@/hooks/use-community-notes";
 
 export const CoverImageModal = () => {
   const params = useParams();
   const [file, setFile] = useState<File>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const coverImage = useCoverImage();
+  const { mutateAsync: uploadFile } = useFileUpload();
+  const { mutateAsync: updateNote } = useUpdateNote();
 
   const onChange = async (file?: File) => {
-    if (file) {
+    if (!file || !params?.documentId) return;
+    try {
       setIsSubmitting(true);
       setFile(file);
+      const uploadResult = await uploadFile({
+        file,
+        folder: "notes",
+      });
 
-      // Mock file upload - convert to data URL
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const imageUrl = reader.result as string;
-        studyHiveApi.notes.update(params.documentId as string, {
-          coverImage: imageUrl,
-        });
-        toast.success("Cover image uploaded!");
-        setIsSubmitting(false);
-        onClose();
-      };
-      reader.readAsDataURL(file);
+      await updateNote({
+        id: params.documentId as string,
+        data: { coverImage: uploadResult.downloadUrl },
+      });
+
+      toast.success("Cover image uploaded!");
+      onClose();
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to upload cover image");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

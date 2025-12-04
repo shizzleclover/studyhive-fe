@@ -1,13 +1,28 @@
 "use client";
 
-import { studyHiveApi } from "@/lib/studyhive-data";
 import { Bookmark } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { IconRenderer } from "@/components/icon-renderer";
+import { useQuery } from "@tanstack/react-query";
+import { userService } from "@/lib/api/services/user.service";
+import { communityNotesService } from "@/lib/api/services/community-notes.service";
 
 const SavedNotesPage = () => {
   const router = useRouter();
-  const savedNotes = studyHiveApi.notes.getSaved();
+  const { data: savedRefs, isLoading } = useQuery({
+    queryKey: ["saved-notes"],
+    queryFn: () => userService.getSavedNotes(),
+  });
+  const noteIds = savedRefs?.map((ref) => ref.noteId) ?? [];
+  const { data: savedNotes, isLoading: isNotesLoading } = useQuery({
+    queryKey: ["saved-note-details", noteIds.join(",")],
+    queryFn: async () => {
+      const notes = await Promise.all(noteIds.map((id) => communityNotesService.getNoteById(id)));
+      return notes;
+    },
+    enabled: noteIds.length > 0,
+  });
+  const isEmpty = !noteIds.length;
 
   return (
     <div className="h-full p-6">
@@ -19,15 +34,17 @@ const SavedNotesPage = () => {
           </p>
         </div>
 
-        {savedNotes.length === 0 ? (
+        {isLoading || isNotesLoading ? (
+          <div className="text-center py-12 text-muted-foreground">
+            Loading saved notes...
+          </div>
+        ) : isEmpty ? (
           <div className="text-center py-12 text-muted-foreground">
             <p className="text-sm">No saved notes yet.</p>
           </div>
         ) : (
           <div className="space-y-1">
-            {savedNotes.map((note) => {
-              const course = studyHiveApi.courses.getById(note.courseId);
-              
+            {(savedNotes ?? []).map((note) => {
               return (
                 <div
                   key={note._id}
@@ -42,7 +59,7 @@ const SavedNotesPage = () => {
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-sm truncate">{note.title}</div>
                     <div className="text-xs text-muted-foreground">
-                      {course?.code} • {note.upvotes} upvotes • {note.commentCount} comments
+                      {typeof note.courseId === "string" ? "" : note.courseId?.code} • {note.upvotes} upvotes • {note.commentCount} comments
                     </div>
                   </div>
                 </div>

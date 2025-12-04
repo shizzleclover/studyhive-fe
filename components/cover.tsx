@@ -2,12 +2,13 @@
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { studyHiveApi } from "@/lib/studyhive-data";
 import { useCoverImage } from "@/hooks/use-cover-image";
 import { cn } from "@/lib/utils";
 import { ImageIcon, X } from "lucide-react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
+import { toast } from "sonner";
+import { useUpdateNote } from "@/hooks/use-community-notes";
 
 interface CoverProps {
   url?: string;
@@ -17,9 +18,19 @@ interface CoverProps {
 export const Cover = ({ url, preview }: CoverProps) => {
   const params = useParams();
   const coverImage = useCoverImage();
+  const { mutateAsync: updateNote, isPending } = useUpdateNote();
 
-  const onRemove = () => {
-    studyHiveApi.notes.removeCoverImage(params.documentId as string);
+  const onRemove = async () => {
+    if (!params?.documentId) return;
+    try {
+      await updateNote({
+        id: params.documentId as string,
+        data: { coverImage: "" },
+      });
+      toast.success("Cover removed");
+    } catch (error: any) {
+      toast.error(error?.message || "Unable to remove cover image");
+    }
   };
 
   return (
@@ -47,6 +58,7 @@ export const Cover = ({ url, preview }: CoverProps) => {
             className="text-muted-foreground text-xs"
             variant="outline"
             size="sm"
+            disabled={isPending}
           >
             <X className="h-4 2-4 mr-2" />
             Remove

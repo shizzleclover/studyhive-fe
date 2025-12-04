@@ -80,8 +80,9 @@ Navigate to [http://localhost:3000](http://localhost:3000)
 │   └── ui/                        # shadcn/ui components
 ├── hooks/                         # Custom React hooks
 └── lib/
-    ├── studyhive-data.ts          # Mock data & API
-    └── utils.ts                   # Helper functions
+    ├── api/                       # Axios client & service layers
+    ├── utils.ts                   # Helper functions
+    └── query-client.ts            # React Query client
 ```
 
 ## 🎨 Design System
@@ -96,7 +97,7 @@ Navigate to [http://localhost:3000](http://localhost:3000)
   - Purple for special features
 
 ### Typography
-- **Font**: Inter (via Next.js font optimization)
+- **Font**: Plus Jakarta Sans (via Next.js font optimization)
 - **Headings**: Bold, clear hierarchy
 - **Body**: Clean, readable text
 
@@ -150,29 +151,27 @@ npm start        # Start production server
 npm run lint     # Run ESLint
 ```
 
-## 🔌 Adding a Real Backend
+## 🔌 API Integration
 
-This project uses mock data in `lib/studyhive-data.ts`. To connect a real backend:
+StudyHive now talks directly to the backend defined by `NEXT_PUBLIC_API_BASE_URL` (defaults to `http://localhost:5000`).  
+All modules use the shared Axios client in `lib/api/client.ts`, with token refresh + error handling baked in. Service files live in `lib/api/services/*` and are consumed via React Query hooks for caching and optimistic updates.
 
-1. **Replace mock API** with actual API calls
-2. **Set up MongoDB** for data persistence
-3. **Configure Cloudflare R2** for file storage
-4. **Add JWT authentication** for user sessions
-5. **Implement real-time updates** with WebSockets (optional)
+### Required Backend Features
+- `/api/auth/*` for authentication + token refresh
+- `/api/levels`, `/api/courses` for academic hierarchy
+- `/api/community-notes`, `/api/past-questions`, `/api/quizzes`, `/api/requests`
+- `/api/upload/presigned-url` for the two-step R2 upload flow
 
-### Recommended Backend Stack
-- **Database**: MongoDB Atlas
-- **File Storage**: Cloudflare R2
-- **Auth**: JWT with access/refresh tokens
-- **API**: Next.js API routes or Express.js
+Update `.env.local` if your API runs elsewhere:
+```
+NEXT_PUBLIC_API_BASE_URL=http://localhost:5000
+```
 
-## 🚧 Demo Limitations
+## 🚧 Current Limitations
 
-- Data resets on page refresh (in-memory storage)
-- File uploads use data URLs (not suitable for large files)
-- No real authentication
-- No real-time updates
-- No data persistence
+- Requires the StudyHive API to be running locally (or configure `NEXT_PUBLIC_API_BASE_URL`)
+- Some admin-only workflows are stubbed in the UI until server endpoints are finalized
+- Real-time updates (websocket/pusher) are not implemented yet
 
 ## 📄 API Endpoints (Future Backend)
 

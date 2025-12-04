@@ -43,15 +43,28 @@ export const useAuth = create<AuthStore>((set, get) => ({
           needsVerification: !user.isVerified
         });
       } catch (fetchError) {
-        console.warn('Failed to fetch user on auth check, but tokens exist:', fetchError);
-        // Tokens exist but user fetch failed - keep them authenticated
-        // The dashboard/app will handle the missing user gracefully
-        set({
-          user: null,
-          isAuthenticated: true, // Keep authenticated since tokens exist
-          isLoading: false,
-          needsVerification: false
-        });
+        const axiosError = fetchError as AxiosError<{ message?: string }>;
+        const status = axiosError.response?.status;
+
+        if (status === 401) {
+          console.warn('Auth check received 401, clearing tokens and logging out.');
+          tokenStorage.clearTokens();
+          set({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            needsVerification: false
+          });
+        } else {
+          console.warn('Failed to fetch user on auth check, keeping session:', fetchError);
+          // Non-auth errors (network, 5xx) should not randomly log the user out
+          set({
+            user: null,
+            isAuthenticated: true,
+            isLoading: false,
+            needsVerification: false
+          });
+        }
       }
     } catch (error) {
       console.error('Auth check failed:', error);

@@ -2,17 +2,19 @@
 
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { studyHiveApi } from "@/lib/studyhive-data";
 import { useAuth } from "@/hooks/use-auth";
 import { PlusCircle } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useCreateNote } from "@/hooks/use-community-notes";
+import { useStudyFilters } from "@/hooks/use-study-filters";
 
 const DocumentsPage = () => {
   const router = useRouter();
-  const { isAuthenticated, isLoading, checkAuth } = useAuth();
-  const user = studyHiveApi.auth.getCurrentUser();
+  const { isAuthenticated, isLoading, checkAuth, user } = useAuth();
+  const { mutateAsync: createNote, isPending } = useCreateNote();
+  const { lastCourseId } = useStudyFilters();
 
   useEffect(() => {
     checkAuth();
@@ -24,17 +26,21 @@ const DocumentsPage = () => {
     }
   }, [isAuthenticated, isLoading, router]);
 
-  const onCreate = () => {
+  const onCreate = async () => {
+    if (!lastCourseId) {
+      toast.info("Select a course before creating a note from the sidebar.");
+      return;
+    }
     try {
-      const newNote = studyHiveApi.notes.create({
+      const newNote = await createNote({
         title: "Untitled",
-        courseId: "",
+        courseId: lastCourseId,
         content: "",
       });
       toast.success("New note created!");
       router.push(`/documents/${newNote._id}`);
-    } catch (error) {
-      toast.error("Failed to create a new note.");
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to create a new note.");
     }
   };
 
@@ -55,9 +61,9 @@ const DocumentsPage = () => {
         className="hidden dark:block"
       />
       <h2 className="text-lg font-medium">
-        Welcome to {user.name}&apos;s StudyHive
+        Welcome to {user?.name ? `${user.name}'s` : "Your"} StudyHive
       </h2>
-      <Button onClick={onCreate}>
+      <Button onClick={onCreate} disabled={isPending}>
         <PlusCircle className="h-4 w-4 mr-2" />
         Create a note
       </Button>

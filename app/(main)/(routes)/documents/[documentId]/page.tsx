@@ -4,9 +4,11 @@ import { Cover } from "@/components/cover";
 import { Toolbar } from "@/components/toolbar";
 import { DocumentHeader } from "@/components/document-header";
 import { Skeleton } from "@/components/ui/skeleton";
-import { studyHiveApi } from "@/lib/studyhive-data";
 import dynamic from "next/dynamic";
 import { useMemo, useState, useEffect } from "react";
+import { useCommunityNote, useUpdateNote } from "@/hooks/use-community-notes";
+import { useDebounce } from "usehooks-ts";
+import { toast } from "sonner";
 
 interface DocumentIdPageProps {
   params: {
@@ -20,20 +22,30 @@ const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
     []
   );
 
-  const [document, setDocument] = useState(studyHiveApi.notes.getById(params.documentId));
-  const [isLoading, setIsLoading] = useState(false);
+  const { data: document, isLoading, isError } = useCommunityNote(params.documentId);
+  const { mutateAsync: updateNote } = useUpdateNote();
+  const [content, setContent] = useState("");
+  const debouncedContent = useDebounce(content, 600);
 
   useEffect(() => {
-    setDocument(studyHiveApi.notes.getById(params.documentId));
-  }, [params.documentId]);
-
-  const onChange = (content: string) => {
     if (document) {
-      const updated = studyHiveApi.notes.update(document._id, { content: content });
-      if (updated) {
-        setDocument(updated);
-      }
+      setContent(document.content || "");
     }
+  }, [document?._id, document?.content]);
+
+  useEffect(() => {
+    if (!document) return;
+    if (debouncedContent === document.content) return;
+    updateNote({
+      id: document._id,
+      data: { content: debouncedContent },
+    }).catch((error: any) => {
+      toast.error(error?.message || "Unable to save content");
+    });
+  }, [debouncedContent, document, updateNote]);
+
+  const onChange = (nextContent: string) => {
+    setContent(nextContent);
   };
 
   if (isLoading) {
@@ -52,8 +64,12 @@ const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
     );
   }
 
-  if (!document) {
-    return <div>Not found</div>;
+  if (isError || !document) {
+    return (
+      <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+        Document not found.
+      </div>
+    );
   }
 
   return (
@@ -62,7 +78,7 @@ const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
       <Cover url={document.coverImage} />
       <div className="md:max-w-3xl lg:max-w-4xl mx-auto">
         <Toolbar initialData={document} />
-        <Editor onChange={onChange} initialContent={document.content} />
+        <Editor onChange={onChange} initialContent={content} />
       </div>
     </div>
   );

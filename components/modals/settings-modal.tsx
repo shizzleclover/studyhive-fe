@@ -4,11 +4,11 @@ import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { ModeToggle } from "@/components/mode-toggle";
 import { useSettings } from "@/hooks/use-settings";
-import { studyHiveApi } from "@/lib/studyhive-data";
+import { useAuth } from "@/hooks/use-auth";
 
 export const SettingsModal = () => {
   const settings = useSettings();
-  const user = studyHiveApi.auth.getCurrentUser();
+  const { user } = useAuth();
 
   return (
     <Dialog open={settings.isOpen} onOpenChange={settings.onClose}>
@@ -19,15 +19,17 @@ export const SettingsModal = () => {
         
         {/* Profile Section */}
         <div className="space-y-4">
-          <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-            <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-2xl">
-              {user.avatar}
+          {user && (
+            <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+              <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-lg font-semibold">
+                {user.name?.charAt(0)}
+              </div>
+              <div>
+                <p className="font-medium">{user.name}</p>
+                <p className="text-sm text-muted-foreground">{user.email}</p>
+              </div>
             </div>
-            <div>
-              <p className="font-medium">{user.name}</p>
-              <p className="text-sm text-muted-foreground">{user.email}</p>
-            </div>
-          </div>
+          )}
 
           <div className="flex items-center justify-between">
             <div className="flex flex-col gap-y-1">

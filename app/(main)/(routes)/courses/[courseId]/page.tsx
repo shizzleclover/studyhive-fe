@@ -1,27 +1,29 @@
 "use client";
 
-import { useState } from "react";
-import { studyHiveApi, PastQuestionType } from "@/lib/studyhive-data";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { 
   ArrowLeft, 
   FileText, 
   BookOpen, 
   Brain, 
-  MessageSquare,
   Download,
   ThumbsUp,
-  ThumbsDown,
-  Bookmark,
-  Clock,
-  Users,
-  Plus,
-  ChevronRight
+  Bookmark
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { IconRenderer } from "@/components/icon-renderer";
+import { useQuery } from "@tanstack/react-query";
+import { coursesService } from "@/lib/api/services/courses.service";
+import { pastQuestionsService } from "@/lib/api/services/past-questions.service";
+import { communityNotesService } from "@/lib/api/services/community-notes.service";
+import { quizzesService } from "@/lib/api/services/quizzes.service";
+import { userService } from "@/lib/api/services/user.service";
+import { votesService } from "@/lib/api/services/votes.service";
+import { PastQuestionType, CommunityNote, Quiz } from "@/lib/api/types";
+import { useStudyFilters } from "@/hooks/use-study-filters";
 
 interface CoursePageProps {
   params: {
@@ -35,14 +37,44 @@ const CoursePage = ({ params }: CoursePageProps) => {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>("pq");
   const [selectedPQType, setSelectedPQType] = useState<PastQuestionType | "all">("all");
-  
-  const course = studyHiveApi.courses.getById(params.courseId);
-  const allPastQuestions = studyHiveApi.pastQuestions.getByCourse(params.courseId);
-  const pastQuestions = selectedPQType === "all" 
-    ? allPastQuestions 
-    : allPastQuestions.filter(pq => pq.type === selectedPQType);
-  const notes = studyHiveApi.notes.getByCourse(params.courseId);
-  const quizzes = studyHiveApi.quizzes.getByCourse(params.courseId);
+  const { setCourse } = useStudyFilters();
+
+  useEffect(() => {
+    setCourse(params.courseId);
+  }, [params.courseId, setCourse]);
+
+  const { data: course, isLoading: isCourseLoading } = useQuery({
+    queryKey: ["course", params.courseId],
+    queryFn: () => coursesService.getCourseById(params.courseId),
+  });
+
+  const { data: pastQuestionsData, isLoading: isPQLoading } = useQuery({
+    queryKey: ["past-questions", params.courseId, selectedPQType],
+    queryFn: () =>
+      pastQuestionsService.getByCourse(params.courseId, {
+        type: selectedPQType === "all" ? undefined : selectedPQType,
+        page: 1,
+        limit: 25,
+      }),
+  });
+
+  const {
+    data: notesData,
+    isLoading: isNotesLoading,
+    refetch: refetchNotes,
+  } = useQuery({
+    queryKey: ["notes", params.courseId],
+    queryFn: () => communityNotesService.getNotesByCourse(params.courseId, { limit: 50 }),
+  });
+
+  const { data: quizzesData, isLoading: isQuizzesLoading } = useQuery({
+    queryKey: ["quizzes", params.courseId],
+    queryFn: () => quizzesService.getQuizzesByCourse(params.courseId, { limit: 25 }),
+  });
+
+  const pastQuestions = pastQuestionsData?.data ?? [];
+  const notes = (notesData?.data ?? []) as CommunityNote[];
+  const quizzes = quizzesData?.data ?? ([] as Quiz[]);
 
   const pastQuestionTypes: { value: PastQuestionType | "all"; label: string }[] = [
     { value: "all", label: "All" },
@@ -70,6 +102,14 @@ const CoursePage = ({ params }: CoursePageProps) => {
     return typeMap[type];
   };
 
+  if (isCourseLoading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-sm text-muted-foreground">Loading course...</div>
+      </div>
+    );
+  }
+
   if (!course) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -89,19 +129,39 @@ const CoursePage = ({ params }: CoursePageProps) => {
     { id: "quizzes" as TabType, label: "Quizzes", icon: Brain, count: quizzes.length },
   ];
 
-  const handleDownload = (pqId: string, fileName: string) => {
-    studyHiveApi.pastQuestions.download(pqId);
-    toast.success(`Downloading ${fileName}`);
+  const handleDownload = async (pqId: string, fileName: string) => {
+    try {
+      const download = await pastQuestionsService.downloadPastQuestion(pqId);
+      if (download?.downloadUrl) {
+        window.open(download.downloadUrl, "_blank");
+      }
+      toast.success(`Downloading ${fileName}`);
+    } catch (error: any) {
+      toast.error(error?.message || "Unable to download file");
+    }
   };
 
-  const handleUpvote = (noteId: string) => {
-    studyHiveApi.notes.upvote(noteId);
-    toast.success("Upvoted!");
+  const handleUpvote = async (noteId: string) => {
+    try {
+      await votesService.castVote({
+        targetId: noteId,
+        targetType: "CommunityNote",
+        voteType: "upvote",
+      });
+      toast.success("Upvoted!");
+      refetchNotes();
+    } catch (error: any) {
+      toast.error(error?.message || "Unable to upvote note");
+    }
   };
 
-  const handleSaveNote = (noteId: string) => {
-    studyHiveApi.notes.save(noteId);
-    toast.success("Note saved!");
+  const handleSaveNote = async (noteId: string) => {
+    try {
+      await userService.saveNote(noteId);
+      toast.success("Note saved!");
+    } catch (error: any) {
+      toast.error(error?.message || "Unable to save note");
+    }
   };
 
   return (
@@ -175,7 +235,11 @@ const CoursePage = ({ params }: CoursePageProps) => {
                 ))}
               </div>
 
-              {pastQuestions.length === 0 ? (
+              {isPQLoading ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  Loading past questions...
+                </div>
+              ) : pastQuestions.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <p className="text-sm">
                     {selectedPQType === "all" 
@@ -222,7 +286,11 @@ const CoursePage = ({ params }: CoursePageProps) => {
           {/* Notes Tab */}
           {activeTab === "notes" && (
             <div className="space-y-2">
-              {notes.length === 0 ? (
+              {isNotesLoading ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  Loading notes...
+                </div>
+              ) : notes.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <p className="text-sm">No community notes yet.</p>
                 </div>
@@ -249,6 +317,14 @@ const CoursePage = ({ params }: CoursePageProps) => {
                             <span>{note.commentCount} comments</span>
                           </div>
                         </div>
+                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition">
+                          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleUpvote(note._id); }}>
+                            <ThumbsUp className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleSaveNote(note._id); }}>
+                            <Bookmark className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -260,7 +336,11 @@ const CoursePage = ({ params }: CoursePageProps) => {
           {/* Quizzes Tab */}
           {activeTab === "quizzes" && (
             <div className="space-y-2">
-              {quizzes.length === 0 ? (
+              {isQuizzesLoading ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  Loading quizzes...
+                </div>
+              ) : quizzes.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <p className="text-sm">No quizzes available for this course yet.</p>
                 </div>

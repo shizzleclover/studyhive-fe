@@ -20,13 +20,22 @@ import {
   Timer,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { ElementRef, useEffect, useRef, useState } from "react";
+import { ElementRef, useEffect, useMemo, useRef, useState } from "react";
 import { useMediaQuery } from "usehooks-ts";
 import { UserItem } from "./user-item";
-import { studyHiveApi } from "@/lib/studyhive-data";
 import { useSearch } from "@/hooks/use-search";
 import { useSettings } from "@/hooks/use-settings";
 import { IconRenderer } from "@/components/icon-renderer";
+import { useLevels } from "@/hooks/use-levels";
+import { useCourses } from "@/hooks/use-courses";
+import { useCreateNote } from "@/hooks/use-community-notes";
+import { useStudyFilters } from "@/hooks/use-study-filters";
+import { useQuery } from "@tanstack/react-query";
+import { userService } from "@/lib/api/services/user.service";
+import { communityNotesService } from "@/lib/api/services/community-notes.service";
+import { requestsService } from "@/lib/api/services/requests.service";
+import { toast } from "sonner";
+import { Course } from "@/lib/api/types";
 
 interface NavItemProps {
   icon: React.ElementType;
@@ -74,8 +83,40 @@ export const Navigation = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  const levels = studyHiveApi.levels.getAll();
+  const { data: levelsData } = useLevels();
+  const { data: coursesData } = useCourses();
   const [expandedLevels, setExpandedLevels] = useState<Record<string, boolean>>({});
+  const { lastCourseId, lastLevelId, setCourse, setLevel } = useStudyFilters();
+  const { mutateAsync: createNote, isPending: isCreatingNote } = useCreateNote();
+
+  const { data: savedNotes } = useQuery({
+    queryKey: ["saved-notes"],
+    queryFn: () => userService.getSavedNotes(),
+  });
+
+  const { data: archivedNotes } = useQuery({
+    queryKey: ["archived-notes"],
+    queryFn: () => communityNotesService.getMyNotes({ status: "archived", limit: 50 }),
+  });
+
+  const { data: pendingRequests } = useQuery({
+    queryKey: ["requests", "pending"],
+    queryFn: () => requestsService.getRequests({ status: "pending", limit: 50, page: 1 }),
+  });
+
+  const coursesByLevel = useMemo(() => {
+    const list = Array.isArray(coursesData)
+      ? coursesData
+      : (coursesData as any)?.data ?? [];
+    if (!list.length) return {} as Record<string, Course[]>;
+    return list.reduce((acc: Record<string, Course[]>, course: Course) => {
+      const levelId = typeof course.level === "string" ? course.level : (course.level as any)?._id;
+      if (!levelId) return acc;
+      if (!acc[levelId]) acc[levelId] = [];
+      acc[levelId].push(course);
+      return acc;
+    }, {} as Record<string, Course[]>);
+  }, [coursesData]);
 
   const isResizingRef = useRef(false);
   const sidebarRef = useRef<ElementRef<"aside">>(null);
@@ -157,6 +198,25 @@ export const Navigation = () => {
 
   const toggleLevel = (levelId: string) => {
     setExpandedLevels(prev => ({ ...prev, [levelId]: !prev[levelId] }));
+    setLevel(levelId);
+  };
+
+  const handleCreateNote = async () => {
+    if (!lastCourseId) {
+      toast.info("Select a course before creating a note.");
+      return;
+    }
+    try {
+      const note = await createNote({
+        courseId: lastCourseId,
+        title: "Untitled note",
+        content: "",
+      });
+      toast.success("New note created");
+      router.push(`/documents/${note._id}`);
+    } catch (error: any) {
+      toast.error(error?.message || "Unable to create note");
+    }
   };
 
   if (!mounted) {
@@ -227,14 +287,8 @@ export const Navigation = () => {
           <NavItem 
             icon={PlusCircle} 
             label="New Page" 
-            onClick={() => {
-              const newNote = studyHiveApi.notes.create({
-                title: "Untitled",
-                courseId: "",
-                content: "",
-              });
-              router.push(`/documents/${newNote._id}`);
-            }}
+            onClick={handleCreateNote}
+            isActive={isCreatingNote}
           />
         </div>
 
@@ -243,9 +297,13 @@ export const Navigation = () => {
           <div className="text-xs font-semibold text-muted-foreground mb-2 px-3 uppercase tracking-wider">
             Levels
           </div>
-          {levels.map((level) => {
-            const courses = studyHiveApi.levels.getCourses(level._id);
-            const isExpanded = expandedLevels[level._id];
+          {(
+            Array.isArray(levelsData)
+              ? levelsData
+              : (levelsData as any)?.data ?? []
+          ).map((level) => {
+            const courses = coursesByLevel[level._id] ?? [];
+            const isExpanded = expandedLevels[level._id] ?? level._id === lastLevelId;
             
             return (
               <div key={level._id}>
@@ -273,7 +331,10 @@ export const Navigation = () => {
                       <div
                         key={course._id}
                         role="button"
-                        onClick={() => router.push(`/courses/${course._id}`)}
+                        onClick={() => {
+                          setCourse(course._id);
+                          router.push(`/courses/${course._id}`);
+                        }}
                         className={cn(
                           "min-h-[32px] text-sm py-1.5 px-3 w-full hover:bg-primary/5 flex items-center gap-2 text-muted-foreground rounded-md transition-colors cursor-pointer",
                           pathname === `/courses/${course._id}` && "bg-primary/5 text-amber-600 dark:text-amber-400"
@@ -299,13 +360,13 @@ export const Navigation = () => {
             icon={Bookmark} 
             label="Saved Notes" 
             onClick={() => router.push("/saved")}
-            showBadge={studyHiveApi.notes.getSaved().length}
+            showBadge={savedNotes?.length}
           />
           <NavItem 
             icon={Trash2} 
             label="Trash" 
             onClick={() => router.push("/trash")}
-            showBadge={studyHiveApi.notes.getArchived().length}
+            showBadge={archivedNotes?.pagination?.totalItems}
           />
           <NavItem 
             icon={Timer} 
@@ -327,7 +388,7 @@ export const Navigation = () => {
             icon={MessageSquare} 
             label="Requests" 
             onClick={() => router.push("/requests")}
-            showBadge={studyHiveApi.requests.getPending().length}
+            showBadge={pendingRequests?.pagination?.total}
           />
         </div>
 
